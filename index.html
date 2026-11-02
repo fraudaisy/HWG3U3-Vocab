@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>英文單字朗讀 ＋ 測驗系統</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --g1:#667eea; --g2:#764ba2;
+    --ok:#22c197; --bad:#ff5c7a; --warn:#ffb020;
+    --ink:#2b2b45; --sub:#7b7b95; --line:#eceaf6;
+    --card:#ffffff; --radius:22px;
+    --shadow:0 12px 30px rgba(80,60,160,.16);
+  }
+  html,body{margin:0;padding:0}
+  body{
+    font-family:system-ui,-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,#667eea 0%,#764ba2 45%,#5b3fa8 100%);
+    min-height:100vh; min-height:100dvh;
+    background-attachment:fixed;
+  }
+  .app{max-width:540px;margin:0 auto;padding:16px 16px 44px}
+
+  /* ---------- 頂部 ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+  .brand{display:flex;align-items:center;gap:8px;color:#fff;font-weight:800;font-size:17px;letter-spacing:.5px}
+  .brand .logo{font-size:24px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.25))}
+  .chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.22);
+    border:1px solid rgba(255,255,255,.35);color:#fff;font-size:13px;font-weight:700;
+    padding:7px 12px;border-radius:999px;backdrop-filter:blur(6px)}
+  .chip button{background:none;border:none;color:#fff;font-size:13px;cursor:pointer;padding:0 0 0 2px}
+
+  /* ---------- 卡片 ---------- */
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 18px;margin-bottom:16px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:19px;margin:0 0 12px}
+  .muted{color:var(--sub);font-size:14px;line-height:1.7}
+  .center{text-align:center}
+
+  /* ---------- 按鈕 ---------- */
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    border:none;border-radius:18px;padding:16px 18px;font-size:17px;font-weight:800;
+    cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2));
+    box-shadow:0 10px 22px rgba(102,126,234,.42);transition:transform .12s,box-shadow .12s,filter .12s;
+    font-family:inherit;letter-spacing:.5px}
+  .btn:active{transform:scale(.97);box-shadow:0 5px 12px rgba(102,126,234,.35)}
+  .btn.ghost{background:#f3f1fb;color:var(--g2);box-shadow:none;border:2px solid #e6e1f8}
+  .btn.soft{background:linear-gradient(135deg,#8e9ef7,#a48cf0);box-shadow:0 8px 18px rgba(142,158,247,.4)}
+  .btn.danger{background:linear-gradient(135deg,#ff7a8a,#ff4f6e);box-shadow:0 10px 22px rgba(255,79,110,.38)}
+  .btn.big{padding:19px;font-size:18px;border-radius:20px}
+  .btn:disabled{opacity:.5;pointer-events:none}
+  .btn-row{display:flex;gap:10px}
+  .btn-row .btn{flex:1}
+
+  /* ---------- 首頁 ---------- */
+  .hero{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+    border-radius:var(--radius);padding:26px 20px;color:#fff;text-align:center;margin-bottom:16px;
+    backdrop-filter:blur(8px)}
+  .hero .emoji{font-size:56px;line-height:1;display:block;margin-bottom:8px;
+    animation:bob 2.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .hero h1{font-size:24px;margin:0 0 6px;color:#fff}
+  .hero p{margin:0;opacity:.9;font-size:14px;line-height:1.7}
+
+  .menu{display:grid;gap:14px}
+  .menu-btn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+    background:var(--card);border:none;border-radius:var(--radius);padding:18px 16px;
+    cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;font-family:inherit}
+  .menu-btn:active{transform:scale(.97)}
+  .menu-btn .ic{font-size:34px;width:58px;height:58px;display:flex;align-items:center;justify-content:center;
+    border-radius:18px;background:linear-gradient(135deg,#f0eefb,#e5ecff);flex:0 0 auto}
+  .menu-btn .tx{flex:1}
+  .menu-btn .tx b{display:block;font-size:18px;color:var(--ink);margin-bottom:3px}
+  .menu-btn .tx span{font-size:13px;color:var(--sub)}
+  .menu-btn .arw{color:#c9c4e6;font-size:20px;font-weight:800}
+
+  /* ---------- 輸入 ---------- */
+  .field{margin:14px 0 6px}
+  .field label{display:block;font-size:14px;font-weight:800;margin-bottom:8px;color:var(--ink)}
+  .field input,.field select{width:100%;border:2px solid var(--line);border-radius:16px;
+    padding:16px;font-size:17px;font-family:inherit;background:#fbfaff;outline:none;transition:.15s}
+  .field input:focus,.field select:focus{border-color:var(--g1);background:#fff;box-shadow:0 0 0 4px rgba(102,126,234,.14)}
+
+  /* ---------- 聽力 ---------- */
+  .word-list{display:grid;gap:10px}
+  .word-item{display:flex;align-items:center;gap:12px;background:#fbfaff;border:2px solid var(--line);
+    border-radius:18px;padding:13px 14px;cursor:pointer;transition:.15s;font-family:inherit;text-align:left;width:100%}
+  .word-item:active{transform:scale(.98);border-color:var(--g1);background:#f4f2ff}
+  .word-item .en{font-size:19px;font-weight:800;color:var(--ink)}
+  .word-item .zh{font-size:14px;color:var(--sub);margin-top:2px}
+  .word-item .ex{font-size:12.5px;color:#9a97b5;margin-top:4px;line-height:1.5}
+  .word-item .spk{margin-left:auto;font-size:24px;flex:0 0 auto}
+
+  /* ---------- 錄音 ---------- */
+  .wcard{background:linear-gradient(140deg,#f6f4ff,#eef3ff);border:2px solid #e7e3fb;
+    border-radius:20px;padding:22px 18px;text-align:center;margin-bottom:14px}
+  .wcard .idx{font-size:12px;font-weight:800;color:var(--g1);background:#fff;display:inline-block;
+    padding:5px 12px;border-radius:999px;margin-bottom:10px;box-shadow:0 3px 8px rgba(102,126,234,.16)}
+  .wcard .big-en{font-size:34px;font-weight:900;letter-spacing:.5px;color:var(--ink);word-break:break-word}
+  .wcard .big-zh{font-size:19px;font-weight:700;color:var(--g2);margin-top:6px}
+  .wcard .big-ex{font-size:14.5px;color:var(--sub);margin-top:10px;line-height:1.6;font-style:italic}
+
+  .rec-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+    border:none;border-radius:22px;padding:22px;font-size:19px;font-weight:900;cursor:pointer;
+    font-family:inherit;color:#fff;background:linear-gradient(135deg,#ff7a8a,#ff4f6e);
+    box-shadow:0 12px 26px rgba(255,79,110,.42);transition:.15s}
+  .rec-btn.recording{background:linear-gradient(135deg,#3d3d5c,#1f1f33);box-shadow:0 12px 26px rgba(31,31,51,.4)}
+  .rec-btn:active{transform:scale(.97)}
+  .dot{width:16px;height:16px;border-radius:50%;background:#fff}
+  .recording .dot{background:#ff5c7a;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+  .timer{text-align:center;font-size:15px;font-weight:800;color:var(--sub);margin-top:10px;letter-spacing:2px}
+
+  /* ---------- 上傳狀態 ---------- */
+  .status{display:none;align-items:center;gap:9px;border-radius:16px;padding:13px 15px;
+    font-size:14.5px;font-weight:700;margin-top:12px;line-height:1.5;word-break:break-all}
+  .status.show{display:flex}
+  .status .ic{font-size:19px;flex:0 0 auto}
+  .status.ok{background:#e8fbf4;color:#12805f;border:1.5px solid #b6f0dd}
+  .status.err{background:#ffeef2;color:#c9234a;border:1.5px solid #ffc6d2}
+  .status.load{background:#fff6e5;color:#9a6200;border:1.5px solid #ffe2ad}
+  .status.info{background:#eef2ff;color:#3a4bbd;border:1.5px solid #cdd6ff}
+
+  /* ---------- 測驗 ---------- */
+  .qhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .qhead .qno{font-size:14px;font-weight:800;color:var(--g2)}
+  .qhead .qscore{font-size:14px;font-weight:800;color:var(--sub)}
+  .bar{height:12px;background:#eee9fb;border-radius:999px;overflow:hidden;margin-bottom:18px}
+  .bar i{display:block;height:100%;width:0;border-radius:999px;
+    background:linear-gradient(90deg,#667eea,#764ba2);transition:width .35s ease}
+  .qword{text-align:center;font-size:40px;font-weight:900;letter-spacing:1px;color:var(--ink);
+    margin:6px 0 4px;word-break:break-word}
+  .qhint{text-align:center;color:var(--sub);font-size:13.5px;margin-bottom:16px}
+  .opts{display:grid;gap:11px}
+  .opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:2.5px solid var(--line);
+    background:#fbfaff;border-radius:18px;padding:16px 15px;font-size:17.5px;font-weight:700;
+    cursor:pointer;font-family:inherit;color:var(--ink);transition:.14s}
+  .opt .k{width:28px;height:28px;flex:0 0 auto;border-radius:9px;background:#efeafb;color:var(--g2);
+    font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center}
+  .opt:active{transform:scale(.98)}
+  .opt.correct{border-color:var(--ok);background:#e8fbf4;color:#12805f}
+  .opt.correct .k{background:var(--ok);color:#fff}
+  .opt.wrong{border-color:var(--bad);background:#ffeef2;color:#c9234a}
+  .opt.wrong .k{background:var(--bad);color:#fff}
+  .opt.locked{pointer-events:none;opacity:.75}
+  .opt.locked.correct{opacity:1}
+
+  /* ---------- 成績 ---------- */
+  .result{text-align:center}
+  .result .medal{font-size:64px;line-height:1;animation:bob 2.4s ease-in-out infinite}
+  .score-big{font-size:78px;font-weight:900;line-height:1;margin:8px 0 2px;
+    background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .score-sub{font-size:15px;color:var(--sub);font-weight:700}
+  .stats{display:flex;gap:10px;margin:18px 0 6px}
+  .stat{flex:1;background:#f7f5ff;border-radius:16px;padding:13px 8px;border:1.5px solid #ece8fb}
+  .stat b{display:block;font-size:24px;color:var(--g2)}
+  .stat span{font-size:12.5px;color:var(--sub);font-weight:700}
+  .wrong-box{background:#fff5f7;border:1.5px solid #ffd7e0;border-radius:16px;padding:13px 14px;
+    margin-top:14px;text-align:left}
+  .wrong-box h3{margin:0 0 8px;font-size:14.5px;color:#c9234a}
+  .wrong-box li{font-size:14.5px;color:#7a3147;margin:5px 0;line-height:1.6}
+  .wrong-box ul{margin:0;padding-left:18px}
+  .all-right{background:#e8fbf4;border:1.5px solid #b6f0dd;border-radius:16px;padding:14px;
+    color:#12805f;font-weight:800;margin-top:14px}
+
+  /* ---------- 其他 ---------- */
+  .back{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);
+    border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:800;font-size:14px;
+    padding:9px 16px;border-radius:999px;cursor:pointer;margin-bottom:14px;font-family:inherit}
+  .back:active{transform:scale(.96)}
+  .nav{display:flex;gap:10px;margin-top:14px}
+  .nav .btn{font-size:15px;padding:14px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);
+    background:rgba(30,25,60,.94);color:#fff;padding:13px 20px;border-radius:999px;
+    font-size:14.5px;font-weight:700;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;
+    pointer-events:none;transition:.25s;z-index:99;max-width:88vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hidden{display:none!important}
+  .warnbar{background:#fff6e5;border:1.5px solid #ffe2ad;color:#9a6200;border-radius:14px;
+    padding:11px 13px;font-size:13.5px;font-weight:700;margin-bottom:14px;line-height:1.6}
+  @media (max-width:380px){
+    .qword{font-size:34px} .score-big{font-size:66px} .wcard .big-en{font-size:30px}
+    .menu-btn .ic{width:50px;height:50px;font-size:30px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== 頂部 ===== -->
+  <div class="top">
+    <div class="brand"><span class="logo">📚</span> 英文單字小教室</div>
+    <div class="chip hidden" id="nameChip">👤 <span id="nameChipText"></span>
+      <button type="button" id="changeName" title="更換姓名">✏️</button></div>
+  </div>
+
+  <!-- ===== 視窗：姓名 ===== -->
+  <section id="screenName">
+    <div class="hero">
+      <span class="emoji">🍎</span>
+      <h1>英文單字朗讀 ＋ 測驗</h1>
+      <p>先輸入你的姓名，<br>就可以開始聽力、錄音與測驗囉！</p>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>🙋 請輸入你的姓名</label>
+        <input id="inputName" type="text" maxlength="20" placeholder="例如：王小明" autocomplete="name">
+      </div>
+      <div style="height:10px"></div>
+      <button class="btn big" id="btnStart">🚀 開始上課</button>
+      <div class="status" id="nameStatus"><span class="ic">⚠️</span><span class="tx"></span></div>
+    </div>
+  </section>
+
+  <!-- ===== 視窗：選單 ===== -->
+  <section id="screenMenu" class="hidden">
+    <div class="hero">
+      <span class="emoji">👋</span>
+      <h1 id="helloName">你好！</h1>
+      <p id="menuTopic">今天也要好好練習喔～</p>
+    </div>
+    <div class="menu">
+      <button class="menu-btn" id="goListen">
+        <span class="ic">🎧</span>
+        <span class="tx"><b>聽力練習</b><span>點一下就朗讀單字與例句</span></span>
+        <span class="arw">›</span>
+      </button>
+      <button class="menu-btn" id="goRecord">
+        <span class="ic">🎙️</span>
+        <span class="tx"><b>錄音作業</b><span>錄下你的發音，自動上傳老師</span></span>
+        <span class="arw">›</span>
+      </button>
+      <button class="menu-btn" id="goQuiz">
+        <span class="ic">📝</span>
+        <span class="tx"><b>單字測驗</b><span>四選一選擇題，成績自動回傳</span></span>
+        <span class="arw">›</span>
+      </button>
+    </div>
+    <div class="status" id="menuStatus"><span class="ic">⚠️</span><span class="tx"></span></div>
+  </section>
+
+  <!-- ===== 視窗：聽力 ===== -->
+  <section id="screenListen" class="hidden">
+    <button class="back" data-back="1">‹ 返回選單</button>
+    <div class="card">
+      <h2>🎧 聽力練習</h2>
+      <p class="muted" style="margin-top:-6px">點一下卡片，就會用英文念出單字與例句。</p>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn soft" id="btnPlayAll">▶️ 全部朗讀</button>
+        <button class="btn ghost" id="btnStopSpeak">⏹ 停止</button>
+      </div>
+      <div class="word-list" id="listenList" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ===== 視窗：錄音 ===== -->
+  <section id="screenRecord" class="hidden">
+    <button class="back" data-back="1">‹ 返回選單</button>
+    <div class="card">
+      <h2>🎙️ 錄音作業</h2>
+      <div class="warnbar hidden" id="micWarn">⚠️ 此頁面不是安全的 https 環境，瀏覽器會封鎖麥克風。請用 GitHub Pages 的 https 連結開啟。</div>
+
+      <div class="wcard">
+        <span class="idx" id="recIdx">第 1 / 10 張</span>
+        <div class="big-en" id="recEn">apple</div>
+        <div class="big-zh" id="recZh">蘋果</div>
+        <div class="big-ex" id="recEx">I eat an apple every day.</div>
+        <div style="margin-top:12px">
+          <button class="btn ghost" style="width:auto;display:inline-flex;padding:9px 18px;font-size:15px" id="btnHearWord">🔊 聽一次</button>
+        </div>
+      </div>
+
+      <button class="rec-btn" id="btnRec"><span class="dot"></span><span id="recLabel">● 開始錄音</span></button>
+      <div class="timer" id="recTimer">00:00</div>
+
+      <div class="status" id="recStatus"><span class="ic">ℹ️</span><span class="tx"></span></div>
+
+      <div class="nav">
+        <button class="btn ghost" id="btnPrev">‹ 上一張</button>
+        <button class="btn soft" id="btnNext">下一張 ›</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 視窗：測驗 ===== -->
+  <section id="screenQuiz" class="hidden">
+    <button class="back" data-back="1" id="quizBack">‹ 返回選單</button>
+
+    <!-- 題目區 -->
+    <div class="card" id="quizPlay">
+      <div class="qhead">
+        <span class="qno" id="qNo">第 1 / 10 題</span>
+        <span class="qscore" id="qScore">✔ 0</span>
+      </div>
+      <div class="bar"><i id="qBar"></i></div>
+      <div class="qword" id="qWord">apple</div>
+      <div class="qhint">🔊 點一下可再聽一次　·　請選出正確的中文意思</div>
+      <div class="opts" id="qOpts"></div>
+      <div class="status" id="quizStatus"><span class="ic">ℹ️</span><span class="tx"></span></div>
+    </div>
+
+    <!-- 成績區 -->
+    <div class="card result hidden" id="quizResult">
+      <div class="medal" id="resMedal">🏆</div>
+      <div class="score-big" id="resScore">100</div>
+      <div class="score-sub" id="resSub">答對 10 / 10 題</div>
+      <div class="stats">
+        <div class="stat"><b id="resOk">10</b><span>✅ 答對</span></div>
+        <div class="stat"><b id="resNg">0</b><span>❌ 答錯</span></div>
+        <div class="stat"><b id="resPct">100%</b><span>📊 正確率</span></div>
+      </div>
+      <div class="all-right hidden" id="resPerfect">🎉 全部答對，太厲害了！</div>
+      <div class="wrong-box hidden" id="resWrongBox">
+        <h3>📕 錯字複習清單</h3>
+        <ul id="resWrongList"></ul>
+      </div>
+      <div class="status" id="resStatus"><span class="ic">ℹ️</span><span class="tx"></span></div>
+      <div style="height:14px"></div>
+      <button class="btn big" id="btnRetry">🔄 再測一次</button>
+      <div style="height:10px"></div>
+      <button class="btn ghost" data-back="1">🏠 回選單</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============================================================================
+ *  ★★★ 5 個設定常數（老師修改處）★★★
+ *  scriptURL    ：Apps Script 部署後的 /exec 連結（尚未部署請先留空字串）
+ *  TOPIC        ：本次作業／課程主題，會一起寫進試算表
+ *  REC_SHEET    ：錄音回傳的分頁名稱（不存在會自動建立）
+ *  QUIZ_SHEET   ：測驗成績的分頁名稱（不存在會自動建立）
+ *  DRIVE_FOLDER ：錄音存檔的 Google 雲端硬碟資料夾 ID（留空＝根目錄）
+ * ========================================================================== */
+const scriptURL    = 'https://script.google.com/macros/s/AKfycbww4vIT3zXy41skE8_UT6Rb-Wfh5_st5x6j8arrqF7KK9TrWOldeV62S0vWLIDEWjsrsg/exec';   // ← Apps Script 網頁應用程式 /exec 連結
+const TOPIC        = '食物與喜好 單字測驗';
+const REC_SHEET    = '錄音回傳';
+const QUIZ_SHEET   = '測驗成績';
+const DRIVE_FOLDER = '';   // ← 例如 '1AbCdEfGhIjKlMnOpQrStUvWxYz'，留空則存到根目錄
+/* ============================================================================
+ *                    以下為程式內容，不用修改
+ * ========================================================================== */
+
+/* ---------------- 單字表 ---------------- */
+const WORDS = [
+  { en:'apple',      zh:'蘋果',        ex:'I eat an apple every day.' },
+  { en:'banana',     zh:'香蕉',        ex:'Monkeys like bananas very much.' },
+  { en:'orange',     zh:'柳橙；橘子',   ex:'I drink orange juice in the morning.' },
+  { en:'watermelon', zh:'西瓜',        ex:'Let\'s share a watermelon in summer.' },
+  { en:'hamburger',  zh:'漢堡',        ex:'He ate a hamburger for lunch.' },
+  { en:'hot dog',    zh:'熱狗',        ex:'I want a hot dog with ketchup.' },
+  { en:'sandwich',   zh:'三明治',      ex:'She made a sandwich for me.' },
+  { en:'like',       zh:'喜歡',        ex:'I like playing basketball.' },
+  { en:'these',      zh:'這些',        ex:'These books are new.' },
+  { en:'those',      zh:'那些',        ex:'Those birds are flying high.' }
+];
+
+/* ---------------- 通用工具 ---------------- */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let studentName = localStorage.getItem('vocName') || '';
+let playingAll = false;
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function setStatus(id, type, msg){
+  const el = $(id);
+  if(!el) return;
+  const ic = type==='ok' ? '✅' : type==='err' ? '❌' : type==='load' ? '⏫' : 'ℹ️';
+  el.className = 'status show ' + (type==='ok'?'ok':type==='err'?'err':type==='load'?'load':'info');
+  el.querySelector('.ic').textContent = ic;
+  el.querySelector('.tx').textContent = msg;
+}
+function hideStatus(id){
+  const el = $(id);
+  if(el){ el.className='status'; el.querySelector('.tx').textContent=''; }
+}
+
+function show(name){
+  ['screenName','screenMenu','screenListen','screenRecord','screenQuiz']
+    .forEach(s => $(s).classList.toggle('hidden', s!==name));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ---------------- 語音朗讀 ---------------- */
+let voices = [];
+function loadVoices(){
+  voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+}
+if(window.speechSynthesis){
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function pickVoice(){
+  if(!voices.length) loadVoices();
+  return voices.find(v=>/en[-_]US/i.test(v.lang) && /female|samantha|zira|google us english/i.test(v.name))
+      || voices.find(v=>/en[-_]US/i.test(v.lang))
+      || voices.find(v=>/^en/i.test(v.lang))
+      || null;
+}
+
+function speak(text, rate){
+  if(!window.speechSynthesis){ toast('此瀏覽器不支援語音合成'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = rate || 0.9;
+  const v = pickVoice();
+  if(v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+function speakWord(w){ speak(w, 0.85); }
+function speakWordAndEx(w){
+  speechSynthesis.cancel();
+  const a = new SpeechSynthesisUtterance(w.en);
+  a.lang='en-US'; a.rate=0.85; const v=pickVoice(); if(v) a.voice=v;
+  speechSynthesis.speak(a);
+  const b = new SpeechSynthesisUtterance(w.ex);
+  b.lang='en-US'; b.rate=0.9; if(v) b.voice=v;
+  speechSynthesis.speak(b);
+}
+
+/* ---------------- 上傳 ---------------- */
+async function post(payload){
+  if(!scriptURL){
+    const err = new Error('尚未設定 scriptURL（請把 Apps Script 的 /exec 連結貼到 index.html）');
+    err.noUrl = true;
+    throw err;
+  }
+  const res = await fetch(scriptURL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(Object.assign({
+      topic: TOPIC,
+      recSheet: REC_SHEET,
+      quizSheet: QUIZ_SHEET,
+      folderId: DRIVE_FOLDER
+    }, payload))
+  });
+  const text = await res.text();
+  let data;
+  try{ data = JSON.parse(text); }
+  catch(e){ throw new Error('伺服器回應格式錯誤（可能部署未完成）'); }
+  if(!data || data.ok !== true) throw new Error((data && data.error) || '上傳失敗');
+  return data;
+}
+
+/* ============================ 首頁 / 姓名 ============================ */
+function refreshChip(){
+  const chip = $('nameChip');
+  if(studentName){
+    chip.classList.remove('hidden');
+    $('nameChipText').textContent = studentName;
+  }else{
+    chip.classList.add('hidden');
+  }
+}
+
+$('btnStart').addEventListener('click', ()=>{
+  const v = $('inputName').value.trim();
+  if(!v){
+    setStatus('nameStatus','err','請先輸入你的姓名喔！');
+    $('inputName').focus();
+    return;
+  }
+  hideStatus('nameStatus');
+  studentName = v;
+  localStorage.setItem('vocName', v);
+  refreshChip();
+  enterMenu();
+});
+
+$('changeName').addEventListener('click', ()=>{
+  $('inputName').value = studentName;
+  show('screenName');
+  setTimeout(()=>$('inputName').focus(), 100);
+});
+
+function enterMenu(){
+  $('helloName').textContent = '你好，' + studentName + '！';
+  $('menuTopic').textContent = '主題：' + TOPIC;
+  hideStatus('menuStatus');
+  show('screenMenu');
+}
+
+/* 返回選單 */
+document.querySelectorAll('[data-back]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    playingAll = false;
+    if(window.speechSynthesis) speechSynthesis.cancel();
+    stopRecording(true);
+    enterMenu();
+  });
+});
+
+$('goListen').addEventListener('click', ()=>{ buildListenList(); show('screenListen'); });
+$('goRecord').addEventListener('click', ()=>{ initRecord(); show('screenRecord'); });
+$('goQuiz').addEventListener('click', ()=>{ startQuiz(); show('screenQuiz'); });
+
+/* ============================ 聽力練習 ============================ */
+function buildListenList(){
+  const box = $('listenList');
+  box.innerHTML = '';
+  WORDS.forEach((w,i)=>{
+    const b = document.createElement('button');
+    b.className = 'word-item';
+    b.innerHTML =
+      '<span><span class="en">'+w.en+'</span>' +
+      '<span class="zh">'+w.zh+'</span>' +
+      '<span class="ex">'+w.ex+'</span></span>' +
+      '<span class="spk">🔊</span>';
+    b.addEventListener('click', ()=>{ playingAll=false; speakWordAndEx(w); });
+    box.appendChild(b);
+  });
+}
+
+$('btnPlayAll').addEventListener('click', ()=>{
+  if(!window.speechSynthesis){ toast('此瀏覽器不支援語音合成'); return; }
+  playingAll = true;
+  let i = 0;
+  const next = ()=>{
+    if(!playingAll || i>=WORDS.length){ playingAll=false; return; }
+    const w = WORDS[i++];
+    speechSynthesis.cancel();
+    const a = new SpeechSynthesisUtterance(w.en);
+    a.lang='en-US'; a.rate=0.85; const v=pickVoice(); if(v) a.voice=v;
+    a.onend = ()=>{ if(!playingAll) return;
+      const b = new SpeechSynthesisUtterance(w.ex);
+      b.lang='en-US'; b.rate=0.9; if(v) b.voice=v;
+      b.onend = ()=> setTimeout(next, 350);
+      speechSynthesis.speak(b);
+    };
+    speechSynthesis.speak(a);
+  };
+  next();
+  toast('▶️ 開始連續朗讀');
+});
+
+$('btnStopSpeak').addEventListener('click', ()=>{
+  playingAll = false;
+  if(window.speechSynthesis) speechSynthesis.cancel();
+  toast('⏹ 已停止');
+});
+
+/* ============================ 錄音作業 ============================ */
+let recIndex = 0;
+let mediaRecorder = null;
+let recChunks = [];
+let recStream = null;
+let isRecording = false;
+let recTimerId = null;
+let recSeconds = 0;
+let recUploading = false;
+
+function initRecord(){
+  recIndex = 0;
+  renderRecCard();
+  hideStatus('recStatus');
+  const insecure = !window.isSecureContext && location.protocol !== 'https:';
+  $('micWarn').classList.toggle('hidden', !insecure);
+  if(typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    if(insecure) $('micWarn').classList.remove('hidden');
+  }else if(location.protocol === 'file:'){
+    $('micWarn').classList.remove('hidden');
+  }
+}
+
+function renderRecCard(){
+  const w = WORDS[recIndex];
+  $('recIdx').textContent = '第 ' + (recIndex+1) + ' / ' + WORDS.length + ' 張';
+  $('recEn').textContent = w.en;
+  $('recZh').textContent = w.zh;
+  $('recEx').textContent = w.ex;
+}
+
+function fmtTime(s){
+  const m = Math.floor(s/60), r = s%60;
+  return (m<10?'0':'')+m+':'+(r<10?'0':'')+r;
+}
+
+function pickMime(){
+  if(typeof MediaRecorder === 'undefined') return '';
+  const cands = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+  for(const c of cands){ if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c; }
+  return '';
+}
+
+async function startRecording(){
+  if(!window.isSecureContext && location.protocol === 'http:'){
+    setStatus('recStatus','err','需要 https 環境才能使用麥克風（請用 GitHub Pages 連結開啟）');
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setStatus('recStatus','err','此瀏覽器不支援麥克風錄音');
+    return;
+  }
+  try{
+    recStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(err){
+    setStatus('recStatus','err','無法取得麥克風權限，請允許後再試（' + (err.name||'error') + '）');
+    return;
+  }
+
+  const mime = pickMime();
+  try{
+    mediaRecorder = mime ? new MediaRecorder(recStream,{mimeType:mime}) : new MediaRecorder(recStream);
+  }catch(err){
+    setStatus('recStatus','err','錄音裝置啟動失敗：' + err.message);
+    return;
+  }
+
+  recChunks = [];
+  recSeconds = 0;
+  $('recTimer').textContent = '00:00';
+  hideStatus('recStatus');
+
+  mediaRecorder.ondataavailable = e=>{ if(e.data && e.data.size) recChunks.push(e.data); };
+  mediaRecorder.onstop = onRecStop;
+  mediaRecorder.start();
+
+  isRecording = true;
+  $('btnRec').classList.add('recording');
+  $('recLabel').textContent = '■ 停止並上傳';
+  recTimerId = setInterval(()=>{
+    recSeconds++;
+    $('recTimer').textContent = fmtTime(recSeconds);
+    if(recSeconds >= 60) stopRecording();
+  }, 1000);
+}
+
+function stopRecording(silent){
+  if(!isRecording) return;
+  isRecording = false;
+  clearInterval(recTimerId);
+  $('btnRec').classList.remove('recording');
+  $('recLabel').textContent = '● 開始錄音';
+  try{ if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }catch(e){}
+  if(silent) cleanupStream();
+}
+
+function cleanupStream(){
+  if(recStream){
+    recStream.getTracks().forEach(t=>{ try{t.stop();}catch(e){} });
+    recStream = null;
+  }
+}
+
+async function onRecStop(){
+  cleanupStream();
+  if(recUploading) return;
+
+  const blob = new Blob(recChunks, {type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm'});
+  recChunks = [];
+
+  if(!blob.size){
+    setStatus('recStatus','err','沒有錄到聲音，請再試一次');
+    return;
+  }
+  if(blob.size < 800){
+    setStatus('recStatus','err','錄音太短了，請至少錄 1 秒鐘');
+    return;
+  }
+  if(!studentName){
+    setStatus('recStatus','err','請先回到選單輸入姓名');
+    return;
+  }
+
+  recUploading = true;
+  setStatus('recStatus','load','⏫ 錄音上傳中，請稍候…');
+
+  try{
+    const dataUrl = await blobToBase64(blob);
+    const base64 = dataUrl.split(',')[1] || '';
+    const ext = (dataUrl.match(/data:audio\/([\w+]+)/) || [])[1] || 'webm';
+    const mime = blob.type || 'audio/webm';
+
+    const w = WORDS[recIndex];
+    const r = await post({
+      action:'record',
+      name: studentName,
+      word: w.en,
+      audioBase64: base64,
+      mime: mime,
+      ext: ext === 'mp4' ? 'm4a' : ext
+    });
+
+    setStatus('recStatus','ok','錄音已上傳！' + (r.fileName ? '（' + r.fileName + '）' : ''));
+    toast('✅ 錄音上傳成功');
+  }catch(err){
+    setStatus('recStatus','err', (err.noUrl ? '❌ ' : '上傳失敗：') + err.message);
+    toast('❌ 上傳失敗');
+  }finally{
+    recUploading = false;
+  }
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onload = ()=>resolve(fr.result);
+    fr.onerror = ()=>reject(new Error('讀取錄音資料失敗'));
+    fr.readAsDataURL(blob);
+  });
+}
+
+$('btnRec').addEventListener('click', ()=>{
+  if(recUploading){ toast('資料上傳中，請稍候…'); return; }
+  if(isRecording) stopRecording();
+  else startRecording();
+});
+
+$('btnHearWord').addEventListener('click', ()=> speakWord(WORDS[recIndex].en));
+
+$('btnPrev').addEventListener('click', ()=>{
+  if(isRecording || recUploading){ toast('請先完成目前的錄音'); return; }
+  recIndex = (recIndex - 1 + WORDS.length) % WORDS.length;
+  renderRecCard(); hideStatus('recStatus');
+});
+$('btnNext').addEventListener('click', ()=>{
+  if(isRecording || recUploading){ toast('請先完成目前的錄音'); return; }
+  recIndex = (recIndex + 1) % WORDS.length;
+  renderRecCard(); hideStatus('recStatus');
+});
+
+/* ============================ 單字測驗 ============================ */
+let quiz = [];
+let qIndex = 0;
+let qCorrect = 0;
+let qWrong = [];
+let qLocked = false;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function startQuiz(){
+  quiz = shuffle(WORDS);
+  qIndex = 0; qCorrect = 0; qWrong = []; qLocked = false;
+  $('quizPlay').classList.remove('hidden');
+  $('quizResult').classList.add('hidden');
+  $('quizBack').classList.remove('hidden');
+  hideStatus('quizStatus');
+  hideStatus('resStatus');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const w = quiz[qIndex];
+  $('qNo').textContent = '第 ' + (qIndex+1) + ' / ' + quiz.length + ' 題';
+  $('qScore').textContent = '✔ ' + qCorrect;
+  $('qBar').style.width = ((qIndex)/quiz.length*100) + '%';
+  $('qWord').textContent = w.en;
+
+  /* 1 個正確 ＋ 3 個隨機干擾 */
+  const others = shuffle(WORDS.filter(x=>x.zh !== w.zh)).slice(0,3);
+  const opts = shuffle([w].concat(others));
+
+  const box = $('qOpts');
+  box.innerHTML = '';
+  const keys = ['A','B','C','D'];
+  opts.forEach((o,i)=>{
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = '<span class="k">'+keys[i]+'</span><span>'+o.zh+'</span>';
+    b.addEventListener('click', ()=>answer(b, o, w));
+    box.appendChild(b);
+  });
+
+  qLocked = false;
+  setTimeout(()=>{ if(!qLocked) speakWord(w.en); }, 250);
+}
+
+function answer(btn, chosen, right){
+  if(qLocked) return;
+  qLocked = true;
+
+  const all = Array.from($('qOpts').children);
+  all.forEach(b=>b.classList.add('locked'));
+  all.forEach(b=>{
+    if(b.textContent.indexOf(right.zh) > -1) b.classList.add('correct');
+  });
+
+  if(chosen.zh === right.zh){
+    qCorrect++;
+    $('qScore').textContent = '✔ ' + qCorrect;
+    toast('✅ 答對了！');
+  }else{
+    btn.classList.add('wrong');
+    qWrong.push(right.en + '（你選：' + chosen.zh + '｜正確：' + right.zh + '）');
+    toast('❌ 正確答案：' + right.zh);
+    speakWord(right.en);
+  }
+
+  setTimeout(()=>{
+    qIndex++;
+    if(qIndex >= quiz.length) finishQuiz();
+    else renderQuestion();
+  }, 950);
+}
+
+async function finishQuiz(){
+  $('qBar').style.width = '100%';
+  const total = quiz.length;
+  const score = Math.round(qCorrect/total*100);
+
+  $('quizPlay').classList.add('hidden');
+  $('quizResult').classList.remove('hidden');
+  $('quizBack').classList.add('hidden');
+
+  $('resMedal').textContent = score>=90 ? '🏆' : score>=70 ? '🌟' : score>=50 ? '💪' : '📖';
+  $('resScore').textContent = score;
+  $('resSub').textContent = '答對 ' + qCorrect + ' / ' + total + ' 題';
+  $('resOk').textContent = qCorrect;
+  $('resNg').textContent = total - qCorrect;
+  $('resPct').textContent = score + '%';
+
+  const perfect = qWrong.length === 0;
+  $('resPerfect').classList.toggle('hidden', !perfect);
+  $('resWrongBox').classList.toggle('hidden', perfect);
+  if(!perfect){
+    const ul = $('resWrongList');
+    ul.innerHTML = '';
+    qWrong.forEach(t=>{
+      const li = document.createElement('li');
+      li.textContent = t;
+      ul.appendChild(li);
+    });
+  }
+
+  hideStatus('resStatus');
+  setStatus('resStatus','load','⏫ 成績上傳中…');
+
+  try{
+    await post({
+      action:'quiz',
+      name: studentName,
+      total: total,
+      correct: qCorrect,
+      score: score,
+      wrong: qWrong
+    });
+    setStatus('resStatus','ok','成績已上傳給老師！（' + score + ' 分）');
+    toast('✅ 成績上傳成功');
+  }catch(err){
+    setStatus('resStatus','err', (err.noUrl ? '❌ ' : '上傳失敗：') + err.message);
+    toast('❌ 成績上傳失敗');
+  }
+}
+
+$('btnRetry').addEventListener('click', startQuiz);
+$('qWord').addEventListener('click', ()=>{
+  if(qIndex < quiz.length) speakWord(quiz[qIndex].en);
+});
+
+/* ============================ 啟動 ============================ */
+refreshChip();
+if(studentName){
+  enterMenu();
+}else{
+  show('screenName');
+}
+if(!scriptURL){
+  console.warn('⚠️ 尚未設定 scriptURL：請把 Apps Script 的 /exec 連結貼到 index.html 最下方的 scriptURL');
+}
+</script>
+</body>
+</html>
